@@ -1,106 +1,157 @@
+-- Darkstrike v1: Базовый интерфейс с кнопками
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local CoreGui = game:GetService("CoreGui")
+local RunService = game:GetService("RunService")
+
+-- Удаляем старый GUI, если есть
+if CoreGui:FindFirstChild("DarkstrikeGui") then
+	CoreGui.DarkstrikeGui:Destroy()
+end
+
 -- Интерфейс
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "DarkstrikeGui"
+ScreenGui.Parent = CoreGui
+
 local Frame = Instance.new("Frame", ScreenGui)
-Frame.Size = UDim2.new(0, 200, 0, 140) -- чуть больше по высоте, чтобы все кнопки вместить
+Frame.Size = UDim2.new(0, 300, 0, 400)
 Frame.Position = UDim2.new(0, 20, 0, 100)
 Frame.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
 Frame.BorderSizePixel = 0
 Frame.Active = true
 Frame.Draggable = true
 
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local RunService = game:GetService("RunService")
+local UIListLayout = Instance.new("UIListLayout", Frame)
+UIListLayout.Padding = UDim.new(0, 10)
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
--- Кнопка AutoFarm (твой старый функционал полёта вверх)
-local autoFarmRunning = false
-local flyConn
-local autoFarmLoop
+-- Создание кнопки с подсветкой
+local function createToggleButton(text)
+	local btn = Instance.new("TextButton", Frame)
+	btn.Size = UDim2.new(1, -20, 0, 40)
+	btn.BackgroundColor3 = Color3.fromRGB(120, 0, 0)
+	btn.TextColor3 = Color3.new(1, 1, 1)
+	btn.Font = Enum.Font.SourceSansBold
+	btn.TextSize = 18
+	btn.Text = text .. ": OFF"
+	btn.AutoButtonColor = false
 
-local button = Instance.new("TextButton", Frame)
-button.Size = UDim2.new(1, -20, 0, 40)
-button.Position = UDim2.new(0, 10, 0, 10)
-button.Text = "AutoFarm: OFF"
-button.TextColor3 = Color3.new(1, 1, 1)
-button.BackgroundColor3 = Color3.fromRGB(120, 0, 0)
-button.Font = Enum.Font.SourceSansBold
-button.TextSize = 18
+	local toggled = false
 
-local flySpeed = 270 -- скорость
-local flyTime = 4.3 -- время полёта
-
-local function startFly()
-	local char = player.Character or player.CharacterAdded:Wait()
-	local hrp = char:WaitForChild("HumanoidRootPart")
-
-	if flyConn then flyConn:Disconnect() end
-
-	local flying = true
-	flyConn = RunService.Heartbeat:Connect(function()
-		if flying and autoFarmRunning then
-			hrp.Velocity = Vector3.new(0, flySpeed, 0)
+	btn.MouseButton1Click:Connect(function()
+		toggled = not toggled
+		if toggled then
+			btn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+			btn.Text = text .. ": ON"
+		else
+			btn.BackgroundColor3 = Color3.fromRGB(120, 0, 0)
+			btn.Text = text .. ": OFF"
 		end
+		-- Вызываем callback для включения/выключения функции
+		btn.Toggled = toggled
 	end)
 
-	task.wait(flyTime)
-	flying = false
-	if flyConn then flyConn:Disconnect() end
-	if hrp then hrp.Velocity = Vector3.new(0, 0, 0) end
+	return btn
 end
 
-button.MouseButton1Click:Connect(function()
-	autoFarmRunning = not autoFarmRunning
-	button.Text = autoFarmRunning and "AutoFarm: ON" or "AutoFarm: OFF"
-	if autoFarmRunning then
-		autoFarmLoop = task.spawn(function()
-			while autoFarmRunning do
-				pcall(startFly)
-				task.wait(20)
-			end
-		end)
-	else
-		if autoFarmLoop then task.cancel(autoFarmLoop) end
-		if flyConn then flyConn:Disconnect() end
+-- Хранилище состояний
+local states = {
+	Fly = false,
+	ESP = false,
+	Aimbot = false,
+	Teleport = false,
+	NoClip = false,
+	AntiAFK = false,
+	FreeCam = false,
+}
 
-		local char = player.Character
-		if char then
-			local hrp = char:FindFirstChild("HumanoidRootPart")
-			if hrp then hrp.Velocity = Vector3.new(0, 0, 0) end
-		end
-	end
-end)
-
--- Кнопка Fly (загрузка внешнего флая)
-local flyLoaded = false
-local flyEnabled = false
-
-local flyButton = Instance.new("TextButton", Frame)
-flyButton.Size = UDim2.new(1, -20, 0, 40)
-flyButton.Position = UDim2.new(0, 10, 0, 60)
-flyButton.Text = "Fly: OFF"
-flyButton.TextColor3 = Color3.new(1, 1, 1)
-flyButton.BackgroundColor3 = Color3.fromRGB(120, 0, 0)
-flyButton.Font = Enum.Font.SourceSansBold
-flyButton.TextSize = 18
-
-flyButton.MouseButton1Click:Connect(function()
-	if not flyLoaded then
+-- Функции для каждой кнопки (пока заглушки, заменишь своими)
+local function toggleFly(state)
+	states.Fly = state
+	print("Fly:", state)
+	if state then
 		loadstring(game:HttpGet("https://raw.githubusercontent.com/XNEOFF/FlyGuiV3/main/FlyGuiV3.txt"))()
-		flyLoaded = true
-		flyEnabled = true
-		flyButton.Text = "Fly: ON"
-		flyButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
 	else
-		-- Просто переключаем состояние и меняем цвет/текст, реальное включение/выключение зависит от внешнего скрипта
-		flyEnabled = not flyEnabled
-		if flyEnabled then
-			flyButton.Text = "Fly: ON"
-			flyButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
-			-- Тут можно вызвать функцию включения из флая, если она доступна
-		else
-			flyButton.Text = "Fly: OFF"
-			flyButton.BackgroundColor3 = Color3.fromRGB(120, 0, 0)
-			-- Тут можно вызвать функцию выключения, если есть
-		end
+		-- Логика отключения флая здесь (если есть)
 	end
+end
+
+local function toggleESP(state)
+	states.ESP = state
+	print("ESP:", state)
+	-- Добавь сюда логику ESP
+end
+
+local function toggleAimbot(state)
+	states.Aimbot = state
+	print("Aimbot:", state)
+	-- Логика аимбота
+end
+
+local function toggleTeleport(state)
+	states.Teleport = state
+	print("Teleport:", state)
+	-- Логика телепорта
+end
+
+local function toggleNoClip(state)
+	states.NoClip = state
+	print("NoClip:", state)
+	-- Логика ноклипа
+end
+
+local function toggleAntiAFK(state)
+	states.AntiAFK = state
+	print("AntiAFK:", state)
+	-- Логика антиАФК
+end
+
+local function toggleFreeCam(state)
+	states.FreeCam = state
+	print("FreeCam:", state)
+	-- Логика фрикам
+end
+
+-- Создаём кнопки и подключаем функции
+local btnFly = createToggleButton("Fly")
+btnFly.MouseButton1Click:Connect(function()
+	toggleFly(btnFly.Toggled)
 end)
+
+local btnESP = createToggleButton("ESP")
+btnESP.MouseButton1Click:Connect(function()
+	toggleESP(btnESP.Toggled)
+end)
+
+local btnAimbot = createToggleButton("Aimbot")
+btnAimbot.MouseButton1Click:Connect(function()
+	toggleAimbot(btnAimbot.Toggled)
+end)
+
+local btnTeleport = createToggleButton("Teleport")
+btnTeleport.MouseButton1Click:Connect(function()
+	toggleTeleport(btnTeleport.Toggled)
+end)
+
+local btnNoClip = createToggleButton("NoClip")
+btnNoClip.MouseButton1Click:Connect(function()
+	toggleNoClip(btnNoClip.Toggled)
+end)
+
+local btnAntiAFK = createToggleButton("AntiAFK")
+btnAntiAFK.MouseButton1Click:Connect(function()
+	toggleAntiAFK(btnAntiAFK.Toggled)
+end)
+
+local btnFreeCam = createToggleButton("FreeCam")
+btnFreeCam.MouseButton1Click:Connect(function()
+	toggleFreeCam(btnFreeCam.Toggled)
+end)
+
+-- Пояснения:  
+-- Вызовы toggleXXX() надо заменить на реальные функции с твоей логикой.
+-- Флай уже подключен через loadstring — по нажатию кнопки загрузится и включится.
+-- Остальные пока пустые, туда ты вставишь свои скрипты.
+
